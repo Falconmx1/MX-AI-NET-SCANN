@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MX-AI-NET-SCANN 2.0 - Escáner IA de Red</title>
+    <title>MX-AI-NET-SCANN 3.0 - Escáner IA de Red Profesional</title>
     <style>
         :root {
             --bg-primary: #0a0a0a;
@@ -13,6 +13,9 @@
             --border-color: #00ff9d;
             --glow: 0 0 10px rgba(0, 255, 157, 0.5);
             --card-bg: rgba(0, 0, 0, 0.8);
+            --danger: #ff0044;
+            --warning: #ff6600;
+            --info: #00ccff;
         }
         
         [data-theme="light"] {
@@ -23,6 +26,9 @@
             --border-color: #006644;
             --glow: 0 0 10px rgba(0, 102, 68, 0.3);
             --card-bg: rgba(255, 255, 255, 0.9);
+            --danger: #cc0000;
+            --warning: #cc5500;
+            --info: #0099cc;
         }
         
         * {
@@ -66,6 +72,12 @@
             to { text-shadow: 0 0 20px var(--text-primary), 0 0 30px var(--text-primary); }
         }
         
+        .subtitle {
+            color: var(--text-secondary);
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
         .theme-toggle {
             position: absolute;
             top: 20px;
@@ -76,6 +88,11 @@
             padding: 10px;
             border-radius: 50%;
             border: 1px solid var(--border-color);
+            transition: transform 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
         }
         
         /* Scan Box */
@@ -83,9 +100,16 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
+            padding: 25px;
+            margin-bottom: 25px;
             backdrop-filter: blur(5px);
+        }
+        
+        .scan-box h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            border-left: 3px solid var(--text-primary);
+            padding-left: 10px;
         }
         
         .input-group {
@@ -95,20 +119,35 @@
             flex-wrap: wrap;
         }
         
-        input, select {
+        input, select, textarea {
             flex: 1;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             padding: 12px;
-            font-size: 1.1em;
+            font-size: 1em;
             font-family: monospace;
             border-radius: 8px;
         }
         
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             box-shadow: var(--glow);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
         }
         
         button {
@@ -116,27 +155,39 @@
             color: var(--bg-primary);
             border: none;
             padding: 12px 30px;
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: bold;
             cursor: pointer;
             border-radius: 8px;
             transition: all 0.3s;
+            font-family: monospace;
         }
         
         button:hover {
-            transform: scale(1.05);
+            transform: scale(1.02);
             box-shadow: var(--glow);
         }
         
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
         }
         
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-top: 20px;
         }
@@ -147,11 +198,24 @@
             border-radius: 10px;
             padding: 15px;
             text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--glow);
         }
         
         .stat-value {
             font-size: 2em;
             font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 5px;
         }
         
         /* Resultados */
@@ -162,6 +226,8 @@
             padding: 20px;
             margin-top: 20px;
             display: none;
+            max-height: 600px;
+            overflow-y: auto;
         }
         
         .result.show {
@@ -180,10 +246,10 @@
             }
         }
         
-        .risk-critical { color: #ff0044; border-left-color: #ff0044; }
-        .risk-high { color: #ff6600; border-left-color: #ff6600; }
+        .risk-critical { color: var(--danger); border-left-color: var(--danger); }
+        .risk-high { color: var(--warning); border-left-color: var(--warning); }
         .risk-medium { color: #ffcc00; border-left-color: #ffcc00; }
-        .risk-low { color: #00ff9d; border-left-color: #00ff9d; }
+        .risk-low { color: var(--text-primary); border-left-color: var(--text-primary); }
         
         .risk-box {
             background: rgba(0,0,0,0.5);
@@ -201,31 +267,39 @@
         }
         
         .port-badge {
-            background: rgba(0, 255, 157, 0.2);
+            background: rgba(0, 255, 157, 0.15);
             border: 1px solid var(--border-color);
             padding: 8px 15px;
             border-radius: 20px;
-            font-size: 0.9em;
+            font-size: 0.85em;
             cursor: pointer;
             transition: all 0.3s;
         }
         
         .port-badge:hover {
             transform: scale(1.05);
-            background: rgba(0, 255, 157, 0.4);
+            background: rgba(0, 255, 157, 0.3);
         }
         
         .vulnerability-item {
             background: rgba(255, 0, 68, 0.1);
-            border-left: 3px solid #ff0044;
-            padding: 10px;
+            border-left: 3px solid var(--danger);
+            padding: 12px;
             margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .recommendation-item {
+            background: rgba(0, 255, 157, 0.1);
+            border-left: 3px solid var(--text-primary);
+            padding: 10px;
+            margin: 8px 0;
             border-radius: 5px;
         }
         
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 40px;
         }
         
         .spinner {
@@ -235,7 +309,7 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 0 auto 20px;
         }
         
         @keyframes spin {
@@ -243,17 +317,63 @@
             100% { transform: rotate(360deg); }
         }
         
-        .history-item {
+        .history-item, .schedule-item, .webhook-item {
             background: var(--bg-primary);
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
             cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all 0.3s;
         }
         
-        .history-item:hover {
-            border-left: 3px solid var(--text-primary);
+        .history-item:hover, .schedule-item:hover, .webhook-item:hover {
+            border-left-color: var(--text-primary);
+            transform: translateX(5px);
         }
+        
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .tab.active {
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--text-primary);
+            background: rgba(0, 255, 157, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        
+        .badge-critical { background: var(--danger); color: white; }
+        .badge-high { background: var(--warning); color: white; }
+        .badge-medium { background: #ffcc00; color: black; }
+        .badge-low { background: var(--text-primary); color: black; }
         
         footer {
             text-align: center;
@@ -261,11 +381,33 @@
             padding: 20px;
             border-top: 1px solid var(--text-secondary);
             color: var(--text-secondary);
+            font-size: 0.8em;
         }
         
         @media (max-width: 768px) {
             h1 { font-size: 2em; }
             .input-group { flex-direction: column; }
+            .checkbox-group { flex-direction: column; align-items: flex-start; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-primary);
         }
     </style>
 </head>
@@ -273,93 +415,255 @@
     <div class="container">
         <header>
             <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
-            <h1>MX-AI-NET-SCANN v2.0</h1>
-            <div class="subtitle">🔍 Escáner de Red con Análisis de IA Avanzado</div>
+            <h1>🔍 MX-AI-NET-SCANN v3.0</h1>
+            <div class="subtitle">🤖 Escáner de Red Profesional con IA | UDP | Webhooks | PDF | Cron Jobs</div>
         </header>
         
-        <div class="scan-box">
-            <div class="input-group">
-                <input type="text" id="targetIP" placeholder="IP o dominio (ej: 192.168.1.1, scanme.nmap.org)" value="scanme.nmap.org">
-                <select id="scanType">
-                    <option value="quick">🚀 Rápido (20 puertos)</option>
-                    <option value="normal" selected>📡 Normal (50 puertos)</option>
-                    <option value="full">🔬 Completo (100 puertos)</option>
-                </select>
-                <button onclick="startScan()">🔍 INICIAR ESCANEO IA</button>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div>🎯 Escaneos hoy</div>
-                    <div class="stat-value" id="scanCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <div>⚠️ Vulnerabilidades</div>
-                    <div class="stat-value" id="vulnCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <div>🎲 Confianza IA</div>
-                    <div class="stat-value" id="confidence">0%</div>
-                </div>
-            </div>
-            
-            <div id="loading" class="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>🤖 Analizando con inteligencia artificial...</p>
-                <p>Escaneando puertos y detectando servicios</p>
-            </div>
-            
-            <div id="result" class="result"></div>
+        <!-- Pestañas principales -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('scan')">🎯 Escáner</button>
+            <button class="tab" onclick="switchTab('schedule')">⏰ Programados</button>
+            <button class="tab" onclick="switchTab('webhooks')">🔔 Webhooks</button>
+            <button class="tab" onclick="switchTab('history')">📜 Historial</button>
+            <button class="tab" onclick="switchTab('stats')">📊 Estadísticas</button>
         </div>
         
-        <div class="scan-box">
-            <h3>📜 Historial de escaneos</h3>
-            <div id="history"></div>
+        <!-- Tab: Escáner -->
+        <div id="tab-scan" class="tab-content active">
+            <div class="scan-box">
+                <h3>🎯 Objetivo</h3>
+                <div class="input-group">
+                    <input type="text" id="targetIP" placeholder="IP o dominio (ej: 192.168.1.1, scanme.nmap.org, google.com)" value="scanme.nmap.org">
+                    <select id="scanType">
+                        <option value="quick">🚀 Rápido (20 puertos)</option>
+                        <option value="normal" selected>📡 Normal (50 puertos)</option>
+                        <option value="full">🔬 Completo (100 puertos)</option>
+                    </select>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="stealthMode"> 🥷 Modo Sigiloso (slow scan - evasión IDS)
+                    </label>
+                    <label>
+                        <input type="checkbox" id="includeUDP" checked> 📡 Incluir escaneo UDP
+                    </label>
+                </div>
+                
+                <button onclick="startScan()" style="width: 100%;">🚀 INICIAR ESCANEO IA</button>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="scanCount">0</div>
+                        <div class="stat-label">Escaneos totales</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="vulnCount">0</div>
+                        <div class="stat-label">Vulnerabilidades</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="confidence">0%</div>
+                        <div class="stat-label">Confianza IA</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgRisk">0</div>
+                        <div class="stat-label">Riesgo promedio</div>
+                    </div>
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>🤖 Analizando con inteligencia artificial...</p>
+                    <p>Escaneando puertos y detectando servicios</p>
+                    <p id="scanStep">Conectando al objetivo...</p>
+                </div>
+                
+                <div id="result" class="result"></div>
+            </div>
+        </div>
+        
+        <!-- Tab: Escaneos Programados -->
+        <div id="tab-schedule" class="tab-content">
+            <div class="scan-box">
+                <h3>⏰ Agregar Escaneo Programado</h3>
+                <div class="input-group">
+                    <input type="text" id="scheduledTarget" placeholder="IP objetivo">
+                    <input type="text" id="cronExpression" placeholder="Cron (ej: 0 */6 * * * = cada 6 horas)">
+                    <select id="scheduledScanType">
+                        <option value="quick">Rápido</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="full">Completo</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="webhookUrl" placeholder="Webhook URL (opcional - Discord/Slack/Telegram)">
+                    <button onclick="addScheduledScan()">📅 Programar Escaneo</button>
+                </div>
+                
+                <h3 style="margin-top: 25px;">📋 Escaneos Programados Activos</h3>
+                <div id="scheduledList">
+                    <p>Cargando...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Webhooks -->
+        <div id="tab-webhooks" class="tab-content">
+            <div class="scan-box">
+                <h3>🔔 Configurar Webhook</h3>
+                <div class="input-group">
+                    <input type="text" id="webhookName" placeholder="Nombre (ej: Discord-Security)">
+                    <input type="text" id="webhookUrl2" placeholder="Webhook URL">
+                    <select id="webhookEvent">
+                        <option value="scan_completed">📡 Escaneo completado</option>
+                        <option value="vulnerability">⚠️ Vulnerabilidad crítica</option>
+                        <option value="all">🔔 Todos los eventos</option>
+                    </select>
+                    <button onclick="addWebhook()">➕ Agregar Webhook</button>
+                </div>
+                
+                <h3 style="margin-top: 25px;">📡 Webhooks Configurados</h3>
+                <div id="webhookList">
+                    <p>Cargando...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Historial -->
+        <div id="tab-history" class="tab-content">
+            <div class="scan-box">
+                <h3>📜 Historial de Escaneos</h3>
+                <div class="input-group">
+                    <input type="text" id="historySearch" placeholder="Buscar por IP..." onkeyup="filterHistory()">
+                    <select id="historyFilter" onchange="filterHistory()">
+                        <option value="all">Todos</option>
+                        <option value="CRÍTICO">CRÍTICO</option>
+                        <option value="ALTO">ALTO</option>
+                        <option value="MEDIO">MEDIO</option>
+                        <option value="BAJO">BAJO</option>
+                    </select>
+                    <button onclick="exportAllHistory()">📥 Exportar Todo (JSON)</button>
+                </div>
+                <div id="historyList">
+                    <p>Cargando historial...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Estadísticas -->
+        <div id="tab-stats" class="tab-content">
+            <div class="scan-box">
+                <h3>📊 Estadísticas Generales</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalScans">0</div>
+                        <div class="stat-label">Total escaneos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAvgRisk">0</div>
+                        <div class="stat-label">Riesgo promedio</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statCritical">0</div>
+                        <div class="stat-label">Hallazgos críticos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statHigh">0</div>
+                        <div class="stat-label">Alto riesgo</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 25px;">🎯 Top objetivos escaneados</h3>
+                <div id="topTargets"></div>
+                
+                <h3 style="margin-top: 25px;">📈 Evolución de riesgo</h3>
+                <canvas id="riskChart" style="max-height: 300px; width: 100%; background: var(--bg-primary); border-radius: 10px;"></canvas>
+            </div>
         </div>
         
         <footer>
-            <p>⚠️ Herramienta educativa - Úsala solo en redes con autorización explícita</p>
-            <p>⚡ MX-AI-NET-SCANN 2.0 | IA Scoring CVSS | Detección de vulnerabilidades CVE</p>
+            <p>⚠️ <strong>AVISO LEGAL:</strong> Esta herramienta es SOLO PARA FINES EDUCATIVOS. Úsala únicamente en redes con autorización explícita.</p>
+            <p>⚡ MX-AI-NET-SCANN v3.0 | IA Scoring CVSS | Detección CVE | UDP Scanner | Webhooks | PDF Export | Cron Jobs</p>
+            <p>🔒 Modo sigiloso: reduces detección por IDS/IPS | Escaneo UDP: detección de servicios como DNS, SNMP, DHCP</p>
         </footer>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let scanCounter = 0;
+        let currentHistory = [];
+        let riskChart = null;
         
-        // Toggle theme
+        // Cambiar tema
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', newTheme === 'light' ? 'light' : '');
             localStorage.setItem('theme', newTheme);
+            
+            // Actualizar ícono
+            const icon = document.querySelector('.theme-toggle');
+            icon.textContent = newTheme === 'light' ? '🌞' : '🌙';
         }
         
-        // Load saved theme
+        // Cargar tema guardado
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
+            document.querySelector('.theme-toggle').textContent = '🌞';
         }
         
+        // Cambiar pestañas
+        function switchTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar tab seleccionado
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Cargar datos según tab
+            if (tabName === 'history') loadHistory();
+            if (tabName === 'schedule') loadScheduledScans();
+            if (tabName === 'webhooks') loadWebhooks();
+            if (tabName === 'stats') loadStats();
+        }
+        
+        // Escaneo principal
         async function startScan() {
             const target = document.getElementById('targetIP').value;
             const scanType = document.getElementById('scanType').value;
+            const stealth = document.getElementById('stealthMode').checked;
+            const includeUDP = document.getElementById('includeUDP').checked;
             
             if (!target) {
-                alert('Ingresa una IP o dominio');
+                alert('❌ Ingresa una IP o dominio');
                 return;
             }
             
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').classList.remove('show');
+            document.getElementById('scanStep').textContent = '🔍 Escaneando puertos...';
             
             try {
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target: target })
+                    body: JSON.stringify({ 
+                        target: target,
+                        scan_type: scanType,
+                        stealth: stealth,
+                        include_udp: includeUDP
+                    })
                 });
                 
                 const data = await response.json();
+                document.getElementById('scanStep').textContent = '✅ Escaneo completado, analizando...';
                 displayResult(data);
                 
                 // Actualizar contadores
@@ -374,7 +678,10 @@
                     document.getElementById('confidence').innerText = data.analysis.confidence + '%';
                 }
                 
+                // Recargar histórico y estadísticas
                 loadHistory();
+                loadStats();
+                
             } catch (error) {
                 displayError(error.message);
             } finally {
@@ -398,15 +705,29 @@
             else if (analysis.risk_level === 'MEDIO') riskClass = 'risk-medium';
             else riskClass = 'risk-low';
             
-            // Puertos
-            let portsHtml = '<h3>🔌 Puertos Abiertos</h3><div class="ports-list">';
-            data.open_ports.forEach(port => {
-                const service = data.services.find(s => s.port === port);
-                portsHtml += `<div class="port-badge" onclick="alert('Puerto ${port}: ${service?.service || 'Desconocido'}')">
-                    ${port} (${service?.service || '?'})
-                </div>`;
-            });
+            // Puertos TCP
+            let portsHtml = '<h3>🔌 Puertos TCP Abiertos</h3><div class="ports-list">';
+            if (data.open_ports_tcp && data.open_ports_tcp.length > 0) {
+                data.open_ports_tcp.forEach(port => {
+                    const service = data.services.find(s => s.port === port && s.protocol === 'TCP');
+                    portsHtml += `<div class="port-badge" onclick="alert('Puerto ${port}\\nServicio: ${service?.service || 'Desconocido'}\\nProtocolo: TCP')">
+                        ${port} (${service?.service || '?'})
+                    </div>`;
+                });
+            } else {
+                portsHtml += '<p>No se encontraron puertos TCP abiertos</p>';
+            }
             portsHtml += '</div>';
+            
+            // Puertos UDP
+            if (data.open_ports_udp && data.open_ports_udp.length > 0) {
+                portsHtml += '<h3>📡 Puertos UDP Abiertos</h3><div class="ports-list">';
+                data.open_ports_udp.forEach(port => {
+                    const service = data.services.find(s => s.port === port && s.protocol === 'UDP');
+                    portsHtml += `<div class="port-badge">${port} (${service?.service || 'UDP'})</div>`;
+                });
+                portsHtml += '</div>';
+            }
             
             // Vulnerabilidades
             let vulnsHtml = '';
@@ -415,9 +736,9 @@
                 analysis.vulnerabilities.forEach(vuln => {
                     vulnsHtml += `
                         <div class="vulnerability-item">
-                            <strong>${vuln.cve}</strong> - CVSS: ${vuln.cvss}<br>
-                            ${vuln.description}<br>
-                            <small>Servicio: ${vuln.service} | Parche: ${vuln.patch_available ? '✅ Disponible' : '❌ No disponible'}</small>
+                            <strong>🔴 ${vuln.cve}</strong> - CVSS: ${vuln.cvss} (${vuln.cvss >= 7 ? 'CRÍTICA' : 'MEDIA'})<br>
+                            📝 ${vuln.description}<br>
+                            🔧 Servicio: ${vuln.service} | ${vuln.patch_available ? '✅ Parche disponible' : '❌ Sin parche'}
                         </div>
                     `;
                 });
@@ -425,63 +746,301 @@
             
             // Recomendaciones
             let recsHtml = '<h3>🤖 Recomendaciones de IA</h3>';
-            analysis.recommendations.forEach(rec => {
-                recsHtml += `<div class="port-badge" style="display: block; margin: 10px 0;">${rec}</div>`;
-            });
+            if (analysis.recommendations && analysis.recommendations.length > 0) {
+                analysis.recommendations.forEach(rec => {
+                    recsHtml += `<div class="recommendation-item">${rec}</div>`;
+                });
+            } else {
+                recsHtml += '<div class="recommendation-item">✅ No se requieren acciones inmediatas</div>';
+            }
+            
+            // Botón exportar PDF
+            const exportBtn = data.id ? `<button onclick="exportPDF(${data.id})" style="margin-top: 15px; width: auto;">📄 Exportar a PDF</button>` : '';
             
             resultDiv.innerHTML = `
                 <div class="risk-box ${riskClass}">
                     <h3>🎯 Resultados para: ${data.target}</h3>
                     <p>✅ Host activo: ${data.alive ? 'SÍ' : 'NO'}</p>
                     <p>🖥️ SO Detectado: ${data.os.os} (Confianza: ${data.os.confidence}%)</p>
-                    <p>${analysis.risk_color} Nivel de Riesgo: ${analysis.risk_level} (${analysis.risk_score}/100)</p>
-                    <p>⏰ Urgencia: ${analysis.urgency}</p>
+                    <p>${analysis.risk_color || '🔴'} <strong>Nivel de Riesgo: ${analysis.risk_level}</strong> (${analysis.risk_score}/100)</p>
+                    <p>⏰ Urgencia: ${analysis.urgency || 'Normal'}</p>
                     <p>🎲 Confianza IA: ${analysis.confidence}%</p>
-                    <p>📊 Superficie de ataque: ${analysis.attack_surface.total_ports} puertos, ${analysis.attack_surface.critical_ports} críticos</p>
+                    <p>📊 Superficie de ataque: ${analysis.attack_surface?.total_ports || 0} puertos, ${analysis.attack_surface?.critical_ports || 0} críticos</p>
+                    <p>🔐 ${analysis.metrics?.exposed_services || 0} servicios expuestos</p>
                 </div>
                 ${portsHtml}
                 ${vulnsHtml}
                 ${recsHtml}
                 <div class="risk-box" style="margin-top: 15px;">
                     <small>⚡ Escaneo completado: ${new Date(data.timestamp).toLocaleString()}</small>
+                    <br>
+                    <small>${data.stealth_mode ? '🥷 Modo sigiloso activado' : '🔓 Modo normal'}</small>
                 </div>
+                ${exportBtn}
             `;
             resultDiv.classList.add('show');
         }
         
         function displayError(message) {
             const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `<div class="risk-box"><h3>❌ Error</h3><p>${message}</p><p>¿El servidor está corriendo? Ejecuta: python app.py</p></div>`;
+            resultDiv.innerHTML = `<div class="risk-box"><h3>❌ Error</h3><p>${message}</p><p>💡 ¿El servidor está corriendo? Ejecuta: python app.py</p></div>`;
             resultDiv.classList.add('show');
         }
         
+        async function exportPDF(scanId) {
+            window.open(`/api/export/pdf/${scanId}`, '_blank');
+        }
+        
+        // Historial
         async function loadHistory() {
             try {
-                const response = await fetch('/api/history');
-                const history = await response.json();
-                const historyDiv = document.getElementById('history');
-                
-                if (history.length === 0) {
-                    historyDiv.innerHTML = '<p>No hay escaneos recientes</p>';
-                    return;
-                }
-                
-                historyDiv.innerHTML = history.slice(0, 5).map(scan => `
-                    <div class="history-item" onclick="alert('${scan.target}\\nPuertos: ${scan.open_ports.join(', ')}\\nRiesgo: ${scan.analysis.risk_level}')">
-                        <strong>${scan.target}</strong> - ${new Date(scan.timestamp).toLocaleTimeString()}
-                        <br>🔓 ${scan.open_ports.length} puertos | ${scan.analysis.risk_color} ${scan.analysis.risk_level}
-                    </div>
-                `).join('');
+                const response = await fetch('/api/history?limit=50');
+                currentHistory = await response.json();
+                renderHistory(currentHistory);
             } catch (error) {
                 console.error('Error loading history:', error);
+                document.getElementById('historyList').innerHTML = '<p>❌ Error cargando historial</p>';
             }
         }
         
-        // Cargar historial al iniciar
+        function renderHistory(history) {
+            const historyDiv = document.getElementById('historyList');
+            
+            if (!history || history.length === 0) {
+                historyDiv.innerHTML = '<p>📭 No hay escaneos recientes</p>';
+                return;
+            }
+            
+            historyDiv.innerHTML = history.map(scan => {
+                let riskBadge = '';
+                if (scan.risk_level === 'CRÍTICO') riskBadge = '<span class="badge badge-critical">CRÍTICO</span>';
+                else if (scan.risk_level === 'ALTO') riskBadge = '<span class="badge badge-high">ALTO</span>';
+                else if (scan.risk_level === 'MEDIO') riskBadge = '<span class="badge badge-medium">MEDIO</span>';
+                else riskBadge = '<span class="badge badge-low">BAJO</span>';
+                
+                return `
+                    <div class="history-item" onclick="viewScanDetails(${scan.id})">
+                        <strong>🎯 ${scan.target}</strong> ${riskBadge}
+                        <br>📅 ${new Date(scan.timestamp).toLocaleString()}
+                        <br>🔓 ${scan.open_ports_tcp?.length || 0} puertos TCP | ${scan.open_ports_udp?.length || 0} UDP | Score: ${scan.risk_score}
+                        <br><button onclick="event.stopPropagation(); exportPDF(${scan.id})" style="padding: 5px 10px; font-size: 0.8em;">📄 PDF</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterHistory() {
+            const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+            const riskFilter = document.getElementById('historyFilter').value;
+            
+            let filtered = currentHistory;
+            
+            if (searchTerm) {
+                filtered = filtered.filter(h => h.target.toLowerCase().includes(searchTerm));
+            }
+            
+            if (riskFilter !== 'all') {
+                filtered = filtered.filter(h => h.risk_level === riskFilter);
+            }
+            
+            renderHistory(filtered);
+        }
+        
+        function viewScanDetails(scanId) {
+            const scan = currentHistory.find(h => h.id === scanId);
+            if (scan) {
+                switchTab('scan');
+                displayResult(scan);
+            }
+        }
+        
+        function exportAllHistory() {
+            const dataStr = JSON.stringify(currentHistory, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mx_ai_net_scann_history_${new Date().toISOString().slice(0,19)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Escaneos programados
+        async function addScheduledScan() {
+            const target = document.getElementById('scheduledTarget').value;
+            const cron = document.getElementById('cronExpression').value;
+            const scanType = document.getElementById('scheduledScanType').value;
+            const webhook = document.getElementById('webhookUrl').value;
+            
+            if (!target || !cron) {
+                alert('❌ Completa todos los campos');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        target, 
+                        cron_expression: cron, 
+                        scan_type: scanType,
+                        webhook_url: webhook || null
+                    })
+                });
+                const data = await response.json();
+                alert(`✅ ${data.message}`);
+                document.getElementById('scheduledTarget').value = '';
+                document.getElementById('cronExpression').value = '';
+                document.getElementById('webhookUrl').value = '';
+                loadScheduledScans();
+            } catch (error) {
+                alert('❌ Error al programar: ' + error.message);
+            }
+        }
+        
+        async function loadScheduledScans() {
+            try {
+                const response = await fetch('/api/schedule/list');
+                const scans = await response.json();
+                const div = document.getElementById('scheduledList');
+                
+                if (scans.length === 0) {
+                    div.innerHTML = '<p>📭 No hay escaneos programados</p>';
+                    return;
+                }
+                
+                div.innerHTML = scans.map(s => `
+                    <div class="schedule-item">
+                        <strong>🎯 ${s.target}</strong><br>
+                        ⏰ Cron: ${s.cron_expression}<br>
+                        📡 Tipo: ${s.scan_type}<br>
+                        🔄 Último: ${s.last_run || 'Nunca'}<br>
+                        ⏳ Próximo: ${s.next_run || 'Calculando...'}<br>
+                        ${s.webhook_url ? `🔔 Webhook: ${s.webhook_url.substring(0, 40)}...` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading scheduled scans:', error);
+            }
+        }
+        
+        // Webhooks
+        async function addWebhook() {
+            const name = document.getElementById('webhookName').value;
+            const url = document.getElementById('webhookUrl2').value;
+            const eventType = document.getElementById('webhookEvent').value;
+            
+            if (!name || !url) {
+                alert('❌ Completa nombre y URL');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/webhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url, event_type: eventType })
+                });
+                const data = await response.json();
+                alert(`✅ ${data.message}`);
+                document.getElementById('webhookName').value = '';
+                document.getElementById('webhookUrl2').value = '';
+                loadWebhooks();
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+        
+        async function loadWebhooks() {
+            try {
+                const response = await fetch('/api/webhook/list');
+                const hooks = await response.json();
+                const div = document.getElementById('webhookList');
+                
+                if (hooks.length === 0) {
+                    div.innerHTML = '<p>📭 No hay webhooks configurados</p>';
+                    return;
+                }
+                
+                div.innerHTML = hooks.map(h => `
+                    <div class="webhook-item">
+                        <strong>🔔 ${h.name}</strong><br>
+                        📡 Evento: ${h.event_type}<br>
+                        🔗 URL: ${h.url.substring(0, 60)}${h.url.length > 60 ? '...' : ''}<br>
+                        ${h.enabled ? '✅ Activo' : '❌ Inactivo'}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading webhooks:', error);
+            }
+        }
+        
+        // Estadísticas
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('statTotalScans').innerText = stats.total_scans || 0;
+                document.getElementById('statAvgRisk').innerText = stats.avg_risk || 0;
+                document.getElementById('statCritical').innerText = stats.critical_count || 0;
+                document.getElementById('statHigh').innerText = stats.high_count || 0;
+                
+                // Cargar evolución de riesgo para gráfico
+                const historyResponse = await fetch('/api/history?limit=20');
+                const history = await historyResponse.json();
+                
+                if (riskChart) riskChart.destroy();
+                
+                const ctx = document.getElementById('riskChart').getContext('2d');
+                riskChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: history.slice().reverse().map(h => new Date(h.timestamp).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Nivel de Riesgo',
+                            data: history.slice().reverse().map(h => h.risk_score),
+                            borderColor: '#00ff9d',
+                            backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') } }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                max: 100,
+                                title: { display: true, text: 'Riesgo', color: getComputedStyle(document.body).getPropertyValue('--text-secondary') }
+                            },
+                            x: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary') } }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Carga inicial
         loadHistory();
+        loadScheduledScans();
+        loadWebhooks();
+        loadStats();
         
         // Auto-refresh cada 30 segundos
-        setInterval(loadHistory, 30000);
+        setInterval(() => {
+            if (document.getElementById('tab-history').classList.contains('active')) loadHistory();
+            if (document.getElementById('tab-schedule').classList.contains('active')) loadScheduledScans();
+            if (document.getElementById('tab-stats').classList.contains('active')) loadStats();
+        }, 30000);
     </script>
 </body>
 </html>
