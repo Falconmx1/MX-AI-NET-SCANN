@@ -1,115 +1,154 @@
-from flask import Flask, render_template, request, jsonify, send_file
-from flask_cors import CORS
-import scanner
-import ai_analysis
-import json
-import os
+import subprocess
+import socket
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import platform
+import re
+import time
+import random
 from datetime import datetime
-import threading
 
-app = Flask(__name__)
-CORS(app)  # Habilitar CORS para APIs externas
+# Top 100 puertos más comunes
+COMMON_PORTS = [
+    20, 21, 22, 23, 25, 53, 69, 80, 110, 123, 135, 137, 138, 139, 143, 161, 162, 179, 389, 443,
+    445, 465, 514, 515, 546, 547, 554, 587, 631, 636, 646, 873, 990, 993, 995, 1080, 1194, 1433,
+    1434, 1723, 1812, 1813, 3306, 3389, 3690, 4369, 5060, 5222, 5432, 5900, 5901, 5984, 6379,
+    6667, 8000, 8008, 8080, 8081, 8443, 8888, 9000, 9090, 9200, 9418, 11211, 27017, 27018
+]
 
-# Almacenamiento de escaneos anteriores
-scan_history = []
-scan_lock = threading.Lock()
+PORT_SERVICE = {
+    20: "FTP-data", 21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 69: "TFTP",
+    80: "HTTP", 110: "POP3", 123: "NTP", 135: "RPC", 137: "NetBIOS-ns", 138: "NetBIOS-dgm",
+    139: "NetBIOS-ssn", 143: "IMAP", 161: "SNMP", 162: "SNMP-trap", 179: "BGP", 389: "LDAP",
+    443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog", 515: "LPD", 546: "DHCPv6-client",
+    547: "DHCPv6-server", 554: "RTSP", 587: "SMTP-sub", 631: "IPP", 636: "LDAPS", 646: "LDP",
+    873: "rsync", 990: "FTPS", 993: "IMAPS", 995: "POP3S", 1080: "SOCKS", 1194: "OpenVPN",
+    1433: "MSSQL", 1434: "MSSQL-mon", 1723: "PPTP", 1812: "RADIUS", 1813: "RADIUS-acct",
+    3306: "MySQL", 3389: "RDP", 3690: "SVN", 4369: "Erlang", 5060: "SIP", 5222: "XMPP",
+    5432: "PostgreSQL", 5900: "VNC", 5901: "VNC-1", 5984: "CouchDB", 6379: "Redis",
+    6667: "IRC", 8000: "HTTP-alt", 8008: "HTTP-alt", 8080: "HTTP-proxy", 8081: "HTTP-alt",
+    8443: "HTTPS-alt", 8888: "HTTP-alt", 9000: "PHP-fpm", 9090: "Prometheus", 9200: "Elasticsearch",
+    9418: "Git", 11211: "Memcached", 27017: "MongoDB", 27018: "MongoDB-shard"
+}
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def scan_host_advanced(ip):
+    """Escaneo avanzado de host con detección de OS por TTL"""
+    try:
+        param = '-n' if platform.system().lower() == 'windows' else '-c'
+        command = ['ping', param, '1', '-W', '1', ip]
+        
+        result = subprocess.run(command, capture_output=True, text=True, timeout=2)
+        alive = result.returncode == 0
+        
+        os_info = {"detected": False, "os": "Desconocido", "ttl": None, "confidence": 0}
+        
+        if alive:
+            output = result.stdout
+            ttl_match = re.search(r'ttl[=:](\d+)', output, re.IGNORECASE)
+            if ttl_match:
+                ttl = int(ttl_match.group(1))
+                os_info["ttl"] = ttl
+                
+                if ttl <= 64:
+                    os_info["os"] = "Linux/Unix/BSD"
+                    os_info["confidence"] = 85
+                elif ttl <= 128:
+                    os_info["os"] = "Windows (10/11/Server)"
+                    os_info["confidence"] = 80
+                elif ttl <= 255:
+                    os_info["os"] = "Router/Cisco/Solaris"
+                    os_info["confidence"] = 70
+                
+                os_info["detected"] = True
+        
+        return alive, os_info
+    except:
+        return False, {"detected": False, "os": "Desconocido", "ttl": None, "confidence": 0}
 
-@app.route('/api/scan', methods=['POST'])
-def scan_network_api():
-    """API endpoint para escaneo"""
-    data = request.json
-    target = data.get('target')
-    ports = data.get('ports')  # Puertos personalizados opcionales
+def scan_port(ip, port, timeout=0.5, stealth=False):
+    """
+    Escanea un puerto TCP
+    Si stealth=True, añade delays aleatorios
+    """
+    if stealth:
+        time.sleep(random.uniform(0.05, 0.3))  # Delay aleatorio para evasión
     
-    if not target:
-        return jsonify({"error": "Se requiere dirección IP"}), 400
-    
-    # Verificar host
-    host_alive, os_info = scanner.scan_host_advanced(target)
-    if not host_alive:
-        return jsonify({
-            "target": target,
-            "alive": False,
-            "error": "Host no responde"
-        }), 404
-    
-    # Escanear puertos
-    if ports and isinstance(ports, list):
-        open_ports = scanner.scan_ports(target, ports)
-    else:
-        open_ports = scanner.scan_ports(target)  # Top 50 puertos
-    
-    # Escaneo de versiones (banner grabbing básico)
-    services = scanner.get_service_versions(target, open_ports)
-    
-    # Análisis IA avanzado
-    analysis = ai_analysis.advanced_analysis(open_ports, services, os_info)
-    
-    # Guardar en historial
-    scan_record = {
-        "timestamp": datetime.now().isoformat(),
-        "target": target,
-        "open_ports": open_ports,
-        "services": services,
-        "analysis": analysis,
-        "os": os_info
-    }
-    
-    with scan_lock:
-        scan_history.insert(0, scan_record)
-        if len(scan_history) > 50:
-            scan_history.pop()
-    
-    return jsonify({
-        "target": target,
-        "alive": True,
-        "os": os_info,
-        "open_ports": open_ports,
-        "services": services,
-        "analysis": analysis,
-        "timestamp": scan_record["timestamp"]
-    })
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((ip, port))
+        sock.close()
+        
+        service = PORT_SERVICE.get(port, f"Desconocido")
+        return port, result == 0, service
+    except:
+        return port, False, "Error"
 
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    """Obtener historial de escaneos"""
-    with scan_lock:
-        return jsonify(scan_history)
-
-@app.route('/api/export/<int:scan_id>', methods=['GET'])
-def export_scan(scan_id):
-    """Exportar escaneo a JSON"""
-    with scan_lock:
-        if scan_id < len(scan_history):
-            return jsonify(scan_history[scan_id])
-    return jsonify({"error": "Escaneo no encontrado"}), 404
-
-@app.route('/api/recommendations', methods=['GET'])
-def get_recommendations():
-    """Obtener recomendaciones generales de seguridad"""
-    return jsonify(ai_analysis.get_general_recommendations())
-
-@app.route('/api/scan/continuous', methods=['POST'])
-def continuous_scan():
-    """Escaneo continuo cada X segundos"""
-    data = request.json
-    target = data.get('target')
-    interval = data.get('interval', 30)  # Segundos
+def scan_ports(ip, ports=None, max_workers=50, timeout=0.5, stealth=False):
+    """
+    Escaneo masivo de puertos con hilos
+    Modo sigiloso: reduce workers y añade delays
+    """
+    if ports is None:
+        ports = COMMON_PORTS
     
-    def background_scan():
-        import time
-        for _ in range(3):  # 3 iteraciones
-            # Lógica de escaneo repetitivo
-            time.sleep(interval)
+    if stealth:
+        max_workers = min(max_workers, 10)  # Menos hilos para modo sigiloso
+        timeout = timeout * 2  # Mayor timeout
     
-    thread = threading.Thread(target=background_scan)
-    thread.start()
+    open_ports = []
+    services = []
     
-    return jsonify({"message": f"Escaneo continuo iniciado cada {interval} segundos"})
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(scan_port, ip, port, timeout, stealth): port for port in ports}
+        
+        for future in as_completed(futures):
+            port, is_open, service = future.result()
+            if is_open:
+                open_ports.append(port)
+                services.append({"port": port, "service": service, "protocol": "TCP"})
+    
+    return open_ports, services
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+def get_service_versions(ip, open_ports, timeout=2, stealth=False):
+    """
+    Banner grabbing básico para obtener versiones de servicios
+    """
+    if stealth:
+        timeout = timeout * 1.5
+    
+    versions = []
+    
+    for port in open_ports:
+        if stealth:
+            time.sleep(random.uniform(0.1, 0.5))
+        
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            sock.connect((ip, port))
+            
+            if port == 80 or port == 8080 or port == 8000:
+                sock.send(b"HEAD / HTTP/1.0\r\n\r\n")
+            elif port == 22:
+                pass
+            else:
+                sock.send(b"\r\n")
+            
+            banner = sock.recv(256).decode('utf-8', errors='ignore').strip()
+            sock.close()
+            
+            if banner:
+                versions.append({
+                    "port": port,
+                    "service": PORT_SERVICE.get(port, "Desconocido"),
+                    "banner": banner[:100]
+                })
+        except:
+            pass
+    
+    return versions
+
+def quick_scan(ip, stealth=False):
+    """Escaneo rápido de los 20 puertos más comunes"""
+    quick_ports = [21, 22, 23, 25, 53, 80, 110, 139, 143, 443, 445, 993, 995, 1433, 3306, 3389, 5432, 5900, 8080, 8443]
+    return scan_ports(ip, quick_ports, max_workers=10 if stealth else 20, timeout=0.3 if not stealth else 0.5, stealth=stealth)
