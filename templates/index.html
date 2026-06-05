@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MX-AI-NET-SCANN - Escáner IA de Red</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #00ff9d;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px;
+            border-bottom: 2px solid #00ff9d;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            text-shadow: 0 0 10px #00ff9d;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 5px #00ff9d; }
+            to { text-shadow: 0 0 20px #00ff9d, 0 0 30px #00ff9d; }
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        .scan-box {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff9d;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #00ff9d;
+            color: #00ff9d;
+            padding: 12px;
+            font-size: 1.1em;
+            font-family: monospace;
+            border-radius: 5px;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 10px #00ff9d;
+        }
+        
+        button {
+            background: #00ff9d;
+            color: #0a0a0a;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #00ff9d;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            background: #0a0a0a;
+            border: 1px solid #00ff9d;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .risk-critical { color: #ff0044; border-left-color: #ff0044; }
+        .risk-high { color: #ff6600; border-left-color: #ff6600; }
+        .risk-medium { color: #ffcc00; border-left-color: #ffcc00; }
+        .risk-low { color: #00ff9d; border-left-color: #00ff9d; }
+        
+        .risk-box {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-left: 4px solid;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .ports-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .port-badge {
+            background: rgba(0, 255, 157, 0.2);
+            border: 1px solid #00ff9d;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .recommendation {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #00ff9d;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            border-top: 1px solid #333;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MX-AI-NET-SCANN</h1>
+            <div class="subtitle">🔍 Escáner de Red con Análisis de Inteligencia Artificial</div>
+        </header>
+        
+        <div class="scan-box">
+            <div class="input-group">
+                <input type="text" id="targetIP" placeholder="Ej: 192.168.1.1, 8.8.8.8, google.com" value="scanme.nmap.org">
+                <button onclick="startScan()">🚀 INICIAR ESCANEO</button>
+            </div>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Escaneando red y analizando con IA...</p>
+            </div>
+            
+            <div id="result" class="result"></div>
+        </div>
+        
+        <footer>
+            <p>⚠️ Herramienta educativa - Úsala solo en redes con autorización</p>
+            <p>Powered by MX-AI-NET-SCANN | MIT License</p>
+        </footer>
+    </div>
+    
+    <script>
+        async function startScan() {
+            const target = document.getElementById('targetIP').value;
+            if (!target) {
+                alert('Ingresa una dirección IP o dominio');
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').classList.remove('show');
+            
+            try {
+                const response = await fetch('/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ target: target })
+                });
+                
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            
+            if (data.error) {
+                resultDiv.innerHTML = `
+                    <div class="risk-box" style="border-left-color: #ff0044;">
+                        <h3>❌ Error</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+                resultDiv.classList.add('show');
+                return;
+            }
+            
+            const analysis = data.analysis;
+            let riskClass = '';
+            if (analysis.risk_level === 'CRÍTICO') riskClass = 'risk-critical';
+            else if (analysis.risk_level === 'ALTO') riskClass = 'risk-high';
+            else if (analysis.risk_level === 'MEDIO') riskClass = 'risk-medium';
+            else riskClass = 'risk-low';
+            
+            let portsHtml = '';
+            if (data.open_ports.length > 0) {
+                portsHtml = `
+                    <h3>🔌 Puertos Abiertos (${data.open_ports.length})</h3>
+                    <div class="ports-list">
+                        ${data.open_ports.map(port => `<span class="port-badge">${port}</span>`).join('')}
+                    </div>
+                    <h3>📡 Servicios Detectados</h3>
+                    <div class="ports-list">
+                        ${analysis.services.map(service => `<span class="port-badge">${service}</span>`).join('')}
+                    </div>
+                `;
+            } else {
+                portsHtml = '<p>✅ No se encontraron puertos abiertos en el rango escaneado</p>';
+            }
+            
+            let recommendationsHtml = '';
+            if (analysis.recommendations && analysis.recommendations.length > 0) {
+                recommendationsHtml = `
+                    <h3>🤖 Recomendaciones de IA</h3>
+                    ${analysis.recommendations.map(rec => `<div class="recommendation">${rec}</div>`).join('')}
+                `;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="risk-box ${riskClass}">
+                    <h3>🎯 Resultados para: ${data.target}</h3>
+                    <p>✅ Host activo: ${data.alive ? 'SÍ' : 'NO'}</p>
+                    <p>🔐 Nivel de Riesgo: ${analysis.color} ${analysis.risk_level} (${analysis.risk_score}/100)</p>
+                    <p>🎲 Confianza IA: ${analysis.confidence}%</p>
+                    <p>🔢 Total puertos analizados: ${analysis.total_ports_open}/${data.open_ports.length}</p>
+                </div>
+                ${portsHtml}
+                ${recommendationsHtml}
+                <div class="recommendation" style="margin-top: 15px; background: rgba(0,255,157,0.1);">
+                    <small>⚡ Escaneo completado - ${new Date().toLocaleString()}</small>
+                </div>
+            `;
+            resultDiv.classList.add('show');
+        }
+        
+        function displayError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="risk-box" style="border-left-color: #ff0044;">
+                    <h3>❌ Error de conexión</h3>
+                    <p>${message}</p>
+                    <p>¿El servidor está corriendo? Ejecuta: python app.py</p>
+                </div>
+            `;
+            resultDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
