@@ -364,4 +364,124 @@
                 
                 // Actualizar contadores
                 scanCounter++;
-                document
+                document.getElementById('scanCount').innerText = scanCounter;
+                
+                if (data.analysis && data.analysis.vulnerabilities) {
+                    document.getElementById('vulnCount').innerText = data.analysis.vulnerabilities.length;
+                }
+                
+                if (data.analysis && data.analysis.confidence) {
+                    document.getElementById('confidence').innerText = data.analysis.confidence + '%';
+                }
+                
+                loadHistory();
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            
+            if (data.error) {
+                resultDiv.innerHTML = `<div class="risk-box"><h3>❌ Error</h3><p>${data.error}</p></div>`;
+                resultDiv.classList.add('show');
+                return;
+            }
+            
+            const analysis = data.analysis;
+            let riskClass = '';
+            if (analysis.risk_level === 'CRÍTICO') riskClass = 'risk-critical';
+            else if (analysis.risk_level === 'ALTO') riskClass = 'risk-high';
+            else if (analysis.risk_level === 'MEDIO') riskClass = 'risk-medium';
+            else riskClass = 'risk-low';
+            
+            // Puertos
+            let portsHtml = '<h3>🔌 Puertos Abiertos</h3><div class="ports-list">';
+            data.open_ports.forEach(port => {
+                const service = data.services.find(s => s.port === port);
+                portsHtml += `<div class="port-badge" onclick="alert('Puerto ${port}: ${service?.service || 'Desconocido'}')">
+                    ${port} (${service?.service || '?'})
+                </div>`;
+            });
+            portsHtml += '</div>';
+            
+            // Vulnerabilidades
+            let vulnsHtml = '';
+            if (analysis.vulnerabilities && analysis.vulnerabilities.length > 0) {
+                vulnsHtml = '<h3>⚠️ Vulnerabilidades Detectadas</h3>';
+                analysis.vulnerabilities.forEach(vuln => {
+                    vulnsHtml += `
+                        <div class="vulnerability-item">
+                            <strong>${vuln.cve}</strong> - CVSS: ${vuln.cvss}<br>
+                            ${vuln.description}<br>
+                            <small>Servicio: ${vuln.service} | Parche: ${vuln.patch_available ? '✅ Disponible' : '❌ No disponible'}</small>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Recomendaciones
+            let recsHtml = '<h3>🤖 Recomendaciones de IA</h3>';
+            analysis.recommendations.forEach(rec => {
+                recsHtml += `<div class="port-badge" style="display: block; margin: 10px 0;">${rec}</div>`;
+            });
+            
+            resultDiv.innerHTML = `
+                <div class="risk-box ${riskClass}">
+                    <h3>🎯 Resultados para: ${data.target}</h3>
+                    <p>✅ Host activo: ${data.alive ? 'SÍ' : 'NO'}</p>
+                    <p>🖥️ SO Detectado: ${data.os.os} (Confianza: ${data.os.confidence}%)</p>
+                    <p>${analysis.risk_color} Nivel de Riesgo: ${analysis.risk_level} (${analysis.risk_score}/100)</p>
+                    <p>⏰ Urgencia: ${analysis.urgency}</p>
+                    <p>🎲 Confianza IA: ${analysis.confidence}%</p>
+                    <p>📊 Superficie de ataque: ${analysis.attack_surface.total_ports} puertos, ${analysis.attack_surface.critical_ports} críticos</p>
+                </div>
+                ${portsHtml}
+                ${vulnsHtml}
+                ${recsHtml}
+                <div class="risk-box" style="margin-top: 15px;">
+                    <small>⚡ Escaneo completado: ${new Date(data.timestamp).toLocaleString()}</small>
+                </div>
+            `;
+            resultDiv.classList.add('show');
+        }
+        
+        function displayError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="risk-box"><h3>❌ Error</h3><p>${message}</p><p>¿El servidor está corriendo? Ejecuta: python app.py</p></div>`;
+            resultDiv.classList.add('show');
+        }
+        
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const history = await response.json();
+                const historyDiv = document.getElementById('history');
+                
+                if (history.length === 0) {
+                    historyDiv.innerHTML = '<p>No hay escaneos recientes</p>';
+                    return;
+                }
+                
+                historyDiv.innerHTML = history.slice(0, 5).map(scan => `
+                    <div class="history-item" onclick="alert('${scan.target}\\nPuertos: ${scan.open_ports.join(', ')}\\nRiesgo: ${scan.analysis.risk_level}')">
+                        <strong>${scan.target}</strong> - ${new Date(scan.timestamp).toLocaleTimeString()}
+                        <br>🔓 ${scan.open_ports.length} puertos | ${scan.analysis.risk_color} ${scan.analysis.risk_level}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+        
+        // Cargar historial al iniciar
+        loadHistory();
+        
+        // Auto-refresh cada 30 segundos
+        setInterval(loadHistory, 30000);
+    </script>
+</body>
+</html>
