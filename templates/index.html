@@ -3,95 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MX-AI-NET-SCANN - Escáner IA de Red</title>
+    <title>MX-AI-NET-SCANN 2.0 - Escáner IA de Red</title>
     <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a2e;
+            --text-primary: #00ff9d;
+            --text-secondary: #888;
+            --border-color: #00ff9d;
+            --glow: 0 0 10px rgba(0, 255, 157, 0.5);
+            --card-bg: rgba(0, 0, 0, 0.8);
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f0f0f0;
+            --bg-secondary: #ffffff;
+            --text-primary: #006644;
+            --text-secondary: #555;
+            --border-color: #006644;
+            --glow: 0 0 10px rgba(0, 102, 68, 0.3);
+            --card-bg: rgba(255, 255, 255, 0.9);
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: all 0.3s ease;
         }
         
         body {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-            color: #00ff9d;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             padding: 20px;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
+        /* Header Cyberpunk */
         header {
             text-align: center;
             padding: 30px;
-            border-bottom: 2px solid #00ff9d;
+            border-bottom: 2px solid var(--border-color);
             margin-bottom: 40px;
+            position: relative;
         }
         
         h1 {
-            font-size: 3em;
-            text-shadow: 0 0 10px #00ff9d;
-            animation: glow 2s ease-in-out infinite alternate;
+            font-size: 3.5em;
+            text-shadow: var(--glow);
+            animation: glowPulse 2s ease-in-out infinite alternate;
+            letter-spacing: 3px;
         }
         
-        @keyframes glow {
-            from { text-shadow: 0 0 5px #00ff9d; }
-            to { text-shadow: 0 0 20px #00ff9d, 0 0 30px #00ff9d; }
+        @keyframes glowPulse {
+            from { text-shadow: 0 0 5px var(--text-primary); }
+            to { text-shadow: 0 0 20px var(--text-primary), 0 0 30px var(--text-primary); }
         }
         
-        .subtitle {
-            color: #888;
-            margin-top: 10px;
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 1.5em;
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
         }
         
+        /* Scan Box */
         .scan-box {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #00ff9d;
-            border-radius: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
+            backdrop-filter: blur(5px);
         }
         
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
-        input {
+        input, select {
             flex: 1;
-            background: #0a0a0a;
-            border: 1px solid #00ff9d;
-            color: #00ff9d;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             padding: 12px;
             font-size: 1.1em;
             font-family: monospace;
-            border-radius: 5px;
+            border-radius: 8px;
         }
         
-        input:focus {
+        input:focus, select:focus {
             outline: none;
-            box-shadow: 0 0 10px #00ff9d;
+            box-shadow: var(--glow);
         }
         
         button {
-            background: #00ff9d;
-            color: #0a0a0a;
+            background: var(--text-primary);
+            color: var(--bg-primary);
             border: none;
             padding: 12px 30px;
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 8px;
             transition: all 0.3s;
         }
         
         button:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 20px #00ff9d;
+            box-shadow: var(--glow);
         }
         
         button:disabled {
@@ -99,10 +133,32 @@
             cursor: not-allowed;
         }
         
-        .result {
-            background: #0a0a0a;
-            border: 1px solid #00ff9d;
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
             border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        /* Resultados */
+        .result {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
             padding: 20px;
             margin-top: 20px;
             display: none;
@@ -131,9 +187,9 @@
         
         .risk-box {
             background: rgba(0,0,0,0.5);
-            padding: 15px;
+            padding: 20px;
             border-left: 4px solid;
-            border-radius: 5px;
+            border-radius: 10px;
             margin: 15px 0;
         }
         
@@ -146,18 +202,25 @@
         
         .port-badge {
             background: rgba(0, 255, 157, 0.2);
-            border: 1px solid #00ff9d;
-            padding: 5px 10px;
-            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            padding: 8px 15px;
+            border-radius: 20px;
             font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .recommendation {
-            background: rgba(0,0,0,0.5);
+        .port-badge:hover {
+            transform: scale(1.05);
+            background: rgba(0, 255, 157, 0.4);
+        }
+        
+        .vulnerability-item {
+            background: rgba(255, 0, 68, 0.1);
+            border-left: 3px solid #ff0044;
             padding: 10px;
             margin: 10px 0;
             border-radius: 5px;
-            font-size: 0.9em;
         }
         
         .loading {
@@ -166,11 +229,11 @@
         }
         
         .spinner {
-            border: 3px solid #00ff9d;
+            border: 3px solid var(--border-color);
             border-top: 3px solid transparent;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
@@ -180,145 +243,125 @@
             100% { transform: rotate(360deg); }
         }
         
+        .history-item {
+            background: var(--bg-primary);
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .history-item:hover {
+            border-left: 3px solid var(--text-primary);
+        }
+        
         footer {
             text-align: center;
             margin-top: 50px;
             padding: 20px;
-            border-top: 1px solid #333;
-            color: #666;
+            border-top: 1px solid var(--text-secondary);
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .input-group { flex-direction: column; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>MX-AI-NET-SCANN</h1>
-            <div class="subtitle">🔍 Escáner de Red con Análisis de Inteligencia Artificial</div>
+            <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
+            <h1>MX-AI-NET-SCANN v2.0</h1>
+            <div class="subtitle">🔍 Escáner de Red con Análisis de IA Avanzado</div>
         </header>
         
         <div class="scan-box">
             <div class="input-group">
-                <input type="text" id="targetIP" placeholder="Ej: 192.168.1.1, 8.8.8.8, google.com" value="scanme.nmap.org">
-                <button onclick="startScan()">🚀 INICIAR ESCANEO</button>
+                <input type="text" id="targetIP" placeholder="IP o dominio (ej: 192.168.1.1, scanme.nmap.org)" value="scanme.nmap.org">
+                <select id="scanType">
+                    <option value="quick">🚀 Rápido (20 puertos)</option>
+                    <option value="normal" selected>📡 Normal (50 puertos)</option>
+                    <option value="full">🔬 Completo (100 puertos)</option>
+                </select>
+                <button onclick="startScan()">🔍 INICIAR ESCANEO IA</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div>🎯 Escaneos hoy</div>
+                    <div class="stat-value" id="scanCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>⚠️ Vulnerabilidades</div>
+                    <div class="stat-value" id="vulnCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>🎲 Confianza IA</div>
+                    <div class="stat-value" id="confidence">0%</div>
+                </div>
             </div>
             
             <div id="loading" class="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>Escaneando red y analizando con IA...</p>
+                <p>🤖 Analizando con inteligencia artificial...</p>
+                <p>Escaneando puertos y detectando servicios</p>
             </div>
             
             <div id="result" class="result"></div>
         </div>
         
+        <div class="scan-box">
+            <h3>📜 Historial de escaneos</h3>
+            <div id="history"></div>
+        </div>
+        
         <footer>
-            <p>⚠️ Herramienta educativa - Úsala solo en redes con autorización</p>
-            <p>Powered by MX-AI-NET-SCANN | MIT License</p>
+            <p>⚠️ Herramienta educativa - Úsala solo en redes con autorización explícita</p>
+            <p>⚡ MX-AI-NET-SCANN 2.0 | IA Scoring CVSS | Detección de vulnerabilidades CVE</p>
         </footer>
     </div>
     
     <script>
+        let scanCounter = 0;
+        
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme === 'light' ? 'light' : '');
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+        
         async function startScan() {
             const target = document.getElementById('targetIP').value;
+            const scanType = document.getElementById('scanType').value;
+            
             if (!target) {
-                alert('Ingresa una dirección IP o dominio');
+                alert('Ingresa una IP o dominio');
                 return;
             }
             
-            // Mostrar loading
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').classList.remove('show');
             
             try {
-                const response = await fetch('/scan', {
+                const response = await fetch('/api/scan', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ target: target })
                 });
                 
                 const data = await response.json();
                 displayResult(data);
-            } catch (error) {
-                displayError(error.message);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-        
-        function displayResult(data) {
-            const resultDiv = document.getElementById('result');
-            
-            if (data.error) {
-                resultDiv.innerHTML = `
-                    <div class="risk-box" style="border-left-color: #ff0044;">
-                        <h3>❌ Error</h3>
-                        <p>${data.error}</p>
-                    </div>
-                `;
-                resultDiv.classList.add('show');
-                return;
-            }
-            
-            const analysis = data.analysis;
-            let riskClass = '';
-            if (analysis.risk_level === 'CRÍTICO') riskClass = 'risk-critical';
-            else if (analysis.risk_level === 'ALTO') riskClass = 'risk-high';
-            else if (analysis.risk_level === 'MEDIO') riskClass = 'risk-medium';
-            else riskClass = 'risk-low';
-            
-            let portsHtml = '';
-            if (data.open_ports.length > 0) {
-                portsHtml = `
-                    <h3>🔌 Puertos Abiertos (${data.open_ports.length})</h3>
-                    <div class="ports-list">
-                        ${data.open_ports.map(port => `<span class="port-badge">${port}</span>`).join('')}
-                    </div>
-                    <h3>📡 Servicios Detectados</h3>
-                    <div class="ports-list">
-                        ${analysis.services.map(service => `<span class="port-badge">${service}</span>`).join('')}
-                    </div>
-                `;
-            } else {
-                portsHtml = '<p>✅ No se encontraron puertos abiertos en el rango escaneado</p>';
-            }
-            
-            let recommendationsHtml = '';
-            if (analysis.recommendations && analysis.recommendations.length > 0) {
-                recommendationsHtml = `
-                    <h3>🤖 Recomendaciones de IA</h3>
-                    ${analysis.recommendations.map(rec => `<div class="recommendation">${rec}</div>`).join('')}
-                `;
-            }
-            
-            resultDiv.innerHTML = `
-                <div class="risk-box ${riskClass}">
-                    <h3>🎯 Resultados para: ${data.target}</h3>
-                    <p>✅ Host activo: ${data.alive ? 'SÍ' : 'NO'}</p>
-                    <p>🔐 Nivel de Riesgo: ${analysis.color} ${analysis.risk_level} (${analysis.risk_score}/100)</p>
-                    <p>🎲 Confianza IA: ${analysis.confidence}%</p>
-                    <p>🔢 Total puertos analizados: ${analysis.total_ports_open}/${data.open_ports.length}</p>
-                </div>
-                ${portsHtml}
-                ${recommendationsHtml}
-                <div class="recommendation" style="margin-top: 15px; background: rgba(0,255,157,0.1);">
-                    <small>⚡ Escaneo completado - ${new Date().toLocaleString()}</small>
-                </div>
-            `;
-            resultDiv.classList.add('show');
-        }
-        
-        function displayError(message) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `
-                <div class="risk-box" style="border-left-color: #ff0044;">
-                    <h3>❌ Error de conexión</h3>
-                    <p>${message}</p>
-                    <p>¿El servidor está corriendo? Ejecuta: python app.py</p>
-                </div>
-            `;
-            resultDiv.classList.add('show');
-        }
-    </script>
-</body>
-</html>
+                
+                // Actualizar contadores
+                scanCounter++;
+                document
